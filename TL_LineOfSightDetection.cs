@@ -1,27 +1,22 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class TL_LineOfSightDetection : MonoBehaviour
 {
     [SerializeField]
-    [Tooltip("List of 2D colliders to detect which collider is the closest")]
-    private List<Collider2D> DetectedColliders = new List<Collider2D>();
+    [Tooltip("Vector3 variable for calculating the direction")]
+    private Vector3 Direction;
 
     [SerializeField]
-    [Tooltip("Stores the closest 2D collider")]
-    private Collider2D Closest2DCollider;
-
-    [SerializeField]
-    [Tooltip("Script reference for the finite state machine")]
-    private TL_FiniteStateMachine FiniteStateMachineScript;
+    [Tooltip("Collider 2D variable to store the detected collider")]
+    private Collider2D DetectedCollider;
 
     [SerializeField]
     [Tooltip("Script reference for the pathfinder")]
     private TL_Pathfinder PathfinderScript;
 
     [SerializeField]
-    [Tooltip("Float value for offsetting the collider")]
-    private float ColliderOffset = 5f;
+    [Tooltip("Script reference for the finite state machine")]
+    private TL_FiniteStateMachine FiniteStateMachineScript;
 
 
     void Start()
@@ -30,100 +25,126 @@ public class TL_LineOfSightDetection : MonoBehaviour
         PathfinderScript = transform.parent.GetComponent<TL_Pathfinder>();
     }
 
+    void CalculateDirection()
+    {
+        //Find the player
+        GameObject Player = GameObject.FindGameObjectWithTag("Player");
+
+        //If the player is still alive
+        if (Player != null)
+        {
+            //Calculate the direction between itself and the Player
+            Direction = Player.transform.position - transform.position;
+        }
+    }
+
+    //Change the line of sight detection based on the next direction of the character
     void ChangeLineOfSightDirection()
     {
+        //If the complete path list has elements
         if (PathfinderScript.CompletePath.Count > 0)
         {
+            //Calculate the direction of the character is moving in
             Vector3 Direction = (PathfinderScript.CompletePath[PathfinderScript.ReturnPathIndex()].Position - transform.parent.position).normalized;
 
+            //Rotate the collider respectively of the character's direction
             if (Direction == Vector3.right)
             {
-                transform.localPosition = Vector3.right * ColliderOffset;
-                transform.localEulerAngles = Vector3.zero;
+                transform.localEulerAngles = new Vector3(0f, 0f, 90f);
             }
             else if (Direction == Vector3.left)
             {
-                transform.localPosition = Vector3.left;
-                transform.localEulerAngles = Vector3.zero;
+                transform.localEulerAngles = new Vector3(0f, 0f, -90f);
             }
             else if (Direction == Vector3.up)
             {
-                transform.localPosition = Vector3.up * ColliderOffset;
-                transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+                transform.localEulerAngles = new Vector3(0f, 0f, 180f);
             }
             else if (Direction == Vector3.down)
-            {                
-                transform.localPosition = Vector3.down;
-                transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+            {
+                transform.localEulerAngles = new Vector3(0f, 0f, 0f);
             }
         }
     }
 
     void Update()
     {
+        CalculateDirection();
         ChangeLineOfSightDirection();
-        CalculateNearestCollider(DetectedColliders);
     }
 
-    Collider2D CalculateNearestCollider(List<Collider2D> ListColliders)
+    Collider2D ReturnClosestCollider(RaycastHit2D[] RaycastHitArray)
     {
-        //Set default values
-        Closest2DCollider = null;
+        //Set collider 2D variable to null as default
+        Collider2D ClosestCollider = null;
 
         //Set closest distance to infinity as default
         float ClosestDistance = Mathf.Infinity;
 
-        //Obtain the current position from the parent
-        Vector3 CurrentPos = transform.parent.position;
-
-        //Loop through the list of colliders
-        foreach (Collider2D Col in ListColliders)
+        //Loop through the raycast hit 2D array
+        foreach (RaycastHit2D RayHit in RaycastHitArray)
         {
             //Calculate the direction from the collider's position with the current position
-            Vector3 Direction = Col.transform.position - CurrentPos;
+            Vector3 Direction = RayHit.collider.transform.position - transform.position;
 
             //Square the direction
-            float DistanceSquared = Direction.sqrMagnitude;
+            float DistSquared = Direction.sqrMagnitude;
 
             //If the distance squared is less than the closest distance
-            if (DistanceSquared < ClosestDistance)
+            if (DistSquared < ClosestDistance)
             {
                 //Set the closest distance to distance squared
-                ClosestDistance = DistanceSquared;
+                ClosestDistance = DistSquared;
 
                 //Set the closest collider from the list of colliders
-                Closest2DCollider = Col;
+                ClosestCollider = RayHit.collider;
             }
         }
+        return ClosestCollider;
+    }
 
+    void RaycastDetection()
+    {
         //If the detected collider still exists
-        if (Closest2DCollider != null)
+        if (DetectedCollider != null)
         {
-            //If the closest collider is the player
-            if (Closest2DCollider.tag == "Player")
+            //Detect and return all of the 2D colliders by the raycast hit array
+            RaycastHit2D[] RaycastCollide2D = Physics2D.RaycastAll(transform.position, Direction, 4f);
+
+            //Calculate and return the closest 2D collider from the raycast hit array
+            Collider2D ReturnedCollider2D = ReturnClosestCollider(RaycastCollide2D);
+
+            Debug.DrawRay(transform.position, Direction, Color.red);
+
+            //If the returned collider is the player and the character isn't attack
+            if (ReturnedCollider2D != null && ReturnedCollider2D.CompareTag("Player") &&
+                FiniteStateMachineScript.ReturnCurrentState() != TL_FiniteStateMachine.CharacterState.Attack)
             {
                 //Set new state to Chase
                 FiniteStateMachineScript.SetNewState(TL_FiniteStateMachine.CharacterState.Chase);
             }
         }
-        //Return the closest collider
-        return Closest2DCollider;
     }
 
-    void OnTriggerEnter2D(Collider2D collision)
+    void FixedUpdate()
     {
-        if (DetectedColliders.Find(x => x == collision) == null)
+        RaycastDetection();
+    }
+
+    void OnTriggerStay2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Player"))
         {
-            if (collision.transform.CompareTag("Player") || collision.transform.CompareTag("Wall"))
-            {
-                DetectedColliders.Add(collision);
-            }
+            DetectedCollider = collision;
         }
     }
 
     void OnTriggerExit2D(Collider2D collision)
     {
-        DetectedColliders.Remove(collision);
+        if (collision.CompareTag("Player"))
+        {
+            DetectedCollider = null;
+        }
     }
 
 }

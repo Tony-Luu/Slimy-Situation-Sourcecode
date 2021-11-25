@@ -22,6 +22,14 @@ public class TL_PlayerHealth : MonoBehaviour
     private TL_SpriteManager SpriteManagerScript;
 
     [SerializeField]
+    [Tooltip("Sound for slime death")]
+    private AudioClip SlimeDeathSound;
+
+    [SerializeField]
+    [Tooltip("Audio source to play sounds")]
+    private AudioSource SoundSource;
+
+    [SerializeField]
     [Tooltip("Particle effect for the slime's death")]
     private ParticleSystem SlimeExplosion;
 
@@ -35,11 +43,20 @@ public class TL_PlayerHealth : MonoBehaviour
         //Obtain the particle system
         SlimeExplosion = GetComponent<ParticleSystem>();
 
+        //Obtain the audio source
+        SoundSource = GetComponent<AudioSource>();
+
         //Find the camera and obtain the image
         HealthBar = GameObject.Find("Camera").GetComponentInChildren<Image>();
 
         //Set current health to max health as default
         CurrentHealth = MaxHealth;
+    }
+
+    //Returns the current health
+    public float ReturnCurrentHealth()
+    {
+        return CurrentHealth;
     }
 
     void UpdateHealthBar()
@@ -61,9 +78,12 @@ public class TL_PlayerHealth : MonoBehaviour
     {
         if (!SlimeExplosion.isPlaying)
         {
+            SoundSource.clip = SlimeDeathSound;
+            SoundSource.Play();
             SlimeExplosion.Play();
             yield return new WaitForSeconds(SlimeExplosion.main.duration);
             SlimeExplosion.Stop();
+            SoundSource.Stop();
         }
     }
 
@@ -92,6 +112,9 @@ public class TL_PlayerHealth : MonoBehaviour
         {
             //Set current health to 0
             CurrentHealth = 0;
+
+            //Obtain the component and disable it
+            GetComponent<Animator>().enabled = false;
 
             //Obtain the box collder
             BoxCollider2D PlayerCollider = GetComponent<BoxCollider2D>();

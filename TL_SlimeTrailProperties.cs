@@ -7,6 +7,14 @@ public class TL_SlimeTrailProperties : MonoBehaviour
     private GameObject SlimeTrail;
 
     [SerializeField]
+    [Tooltip("Sound for slime recovering on slime trail")]
+    private AudioClip SlimeRecoverySound;
+
+    [SerializeField]
+    [Tooltip("Audio source to play sounds")]
+    private AudioSource SoundSource;
+
+    [SerializeField]
     [Tooltip("Script reference for moving the player")]
     private TL_MoveCharacter MoveCharacterScript;
 
@@ -17,8 +25,14 @@ public class TL_SlimeTrailProperties : MonoBehaviour
 
     void Start()
     {
+        //Obtain the move character script
         MoveCharacterScript = GetComponent<TL_MoveCharacter>();
+
+        //Obtain the player health script
         PlayerHealthScript = GetComponent<TL_PlayerHealth>();
+
+        //Obtain the audio source
+        SoundSource = GetComponent<AudioSource>();
     }
 
     //Does the terrain tile exist on the next position?
@@ -66,10 +80,30 @@ public class TL_SlimeTrailProperties : MonoBehaviour
         }
     }
 
+    void ChangeAudioClipBasedOnNextPosition()
+    {
+        //If the slime trail is on the next position
+        if (IsTerrainTileOnNextPosition("Trail"))
+        {
+            //Set the audio clip as the slime recovery sound
+            SoundSource.clip = SlimeRecoverySound;
+        }
+    }
+
     void Update()
     {
+        ChangeAudioClipBasedOnNextPosition();
         ReduceHealth();
         CreateSlimeTrail();
+    }
+
+    void OnTriggerExit2D(Collider2D collider)
+    {
+        if (collider.gameObject.CompareTag("Puddle"))
+        {
+            //Destroy the puddle
+            Destroy(collider.gameObject);
+        }
     }
 
     void OnTriggerStay2D(Collider2D collider)
@@ -77,6 +111,9 @@ public class TL_SlimeTrailProperties : MonoBehaviour
         //If the player touches the slime trail
         if (collider.gameObject.CompareTag("Trail") && Vector3.Distance(transform.position, collider.transform.position) < 0.25f)
         {
+            //Play the sound
+            SoundSource.Play();
+
             //Increase current health by 1
             PlayerHealthScript.SetCurrentHealth(1f);
 

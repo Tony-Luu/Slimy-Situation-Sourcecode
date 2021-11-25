@@ -335,7 +335,8 @@ public class TL_Pathfinder : MonoBehaviour
         }
     }
 
-    void ManagePositionsForSpriteDirections()
+    //Sends two positions to the sprite manager script to calculate the current directions
+    void ManagePositionsForDirections()
     {
         //If the list has elements
         if (CompletePath.Count > 0 && FiniteStateMachineScript.ReturnCurrentState() != TL_FiniteStateMachine.CharacterState.Attack)
@@ -348,7 +349,7 @@ public class TL_Pathfinder : MonoBehaviour
     void Update()
     {
         AnimateCharacter();
-        ManagePositionsForSpriteDirections();
+        ManagePositionsForDirections();
     }
 
     //Moving the player to the target position
@@ -376,7 +377,7 @@ public class TL_Pathfinder : MonoBehaviour
                     //Set the transform position to the last position in the list
                     transform.position = CompletePath[PathIndex].Position;
                 }
-            }
+            }            
         }
     }
 

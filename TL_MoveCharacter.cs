@@ -15,12 +15,23 @@ public class TL_MoveCharacter : MonoBehaviour
     private bool IsPlayerMoving;
 
     [SerializeField]
+    [Tooltip("Sound for slime moving")]
+    private AudioClip SlimeMovingSound;
+
+    [SerializeField]
+    [Tooltip("Audio source to play sounds")]
+    private AudioSource SoundSource;
+
+    [SerializeField]
     [Tooltip("Script reference for the level manager script")]
     private TL_LevelManager LevelManagerScript;
 
     [SerializeField]
     [Tooltip("Script reference for the sprite manager script")]
     private TL_SpriteManager SpriteManagerScript;
+
+    [SerializeField]
+    private LayerMask IgnoreLayer;
 
 
     //Returns the next position
@@ -40,6 +51,9 @@ public class TL_MoveCharacter : MonoBehaviour
         //Set the next position to the transform position as default
         NextPosition = transform.position;
 
+        //Obtain the audio source
+        SoundSource = GetComponent<AudioSource>();
+
         //Find the level area and obtain the script
         LevelManagerScript = GameObject.Find("LevelArea").GetComponent<TL_LevelManager>();
 
@@ -47,49 +61,77 @@ public class TL_MoveCharacter : MonoBehaviour
         SpriteManagerScript = GetComponent<TL_SpriteManager>();
     }
 
+    //Uses a 2D box cast and checks in a direction if it collides with anything or not
+    bool IsRaycastDetectingCollisionInNextDirection(Vector3 NextDirection)
+    {
+        //Set the distance for detection
+        float DetectionDistance = 1f;
+
+        //Set the box size of the box cast
+        Vector2 BoxSize = new Vector2(0.95f, 0.95f);
+
+        //Create a 2D box cast
+        RaycastHit2D RaycastDetect2D = Physics2D.BoxCast(transform.position, BoxSize, 90f, NextDirection, DetectionDistance, ~IgnoreLayer);        
+
+        //Return the result of the 2D box cast
+        return RaycastDetect2D;
+    }
+
     void MovePlayer()
     {
+        //Checks and returns if the next position in the scene is obstructed or not
+        bool IsUpPositionObstructed = IsRaycastDetectingCollisionInNextDirection(Vector2.up);
+        bool IsDownPositionObstructed = IsRaycastDetectingCollisionInNextDirection(Vector2.down);
+        bool IsLeftPositionObstructed = IsRaycastDetectingCollisionInNextDirection(Vector2.left);
+        bool IsRightPositionObstructed = IsRaycastDetectingCollisionInNextDirection(Vector2.right);
+
         //If the player has not reached the next position and the player is not moving
-        if (Vector3.Distance(transform.position, NextPosition) < 0.1f && !IsCharacterMoving())
+        if (Vector3.Distance(transform.position, NextPosition) < Mathf.Epsilon && !IsCharacterMoving())
         {
-            //If the directional keys are pressed then set the next position depending on the key pressed and set the bool to true
-            if (Input.GetKey(KeyCode.A))
+            //Set the audio clip as the slime moving sound
+            SoundSource.clip = SlimeMovingSound;
+
+            //If the directional keys are pressed then set the next position depending on the key pressed and
+            //the next position is not obstructed
+            if (Input.GetKey(KeyCode.A) && !IsLeftPositionObstructed)
             {
-                //If the next position does not go out of array bounds and the next position is null in the gameobject array
-                if (NextPosition.x - 1f >= 0f && LevelManagerScript.ReturnGameObjectFromPosition((int)(NextPosition.x - 1f), (int)NextPosition.y) == null)
+                //If the next position does not go out of array bounds
+                if (NextPosition.x - 1f >= 0f)
                 {
+                    SoundSource.Play();
                     NextPosition = new Vector3(NextPosition.x - 1f, NextPosition.y, NextPosition.z);
                     IsPlayerMoving = true;
                 }
             }
-            else if (Input.GetKey(KeyCode.D))
+            else if (Input.GetKey(KeyCode.D) && !IsRightPositionObstructed)
             {
-                //If the next position does not go out of array bounds and the next position is null in the gameobject array
-                if (NextPosition.x + 1f < LevelManagerScript.ReturnLevelAreaArray().GetLength(0) && 
-                    LevelManagerScript.ReturnGameObjectFromPosition((int)(NextPosition.x + 1f), (int)NextPosition.y) == null)
+                //If the next position does not go out of array bounds
+                if (NextPosition.x + 1f < LevelManagerScript.ReturnLevelAreaArray().GetLength(0))
                 {
+                    SoundSource.Play();
                     NextPosition = new Vector3(NextPosition.x + 1f, NextPosition.y, NextPosition.z);
                     IsPlayerMoving = true;
                 }
             }
-            else if (Input.GetKey(KeyCode.S))
+            else if (Input.GetKey(KeyCode.S) && !IsDownPositionObstructed)
             {
-                //If the next position does not go out of array bounds and the next position is null in the gameobject array
-                if (NextPosition.y - 1f >= 0f && LevelManagerScript.ReturnGameObjectFromPosition((int)(NextPosition.x), (int)(NextPosition.y - 1f)) == null)
+                //If the next position does not go out of array bounds
+                if (NextPosition.y - 1f >= 0f)
                 {
+                    SoundSource.Play();
                     NextPosition = new Vector3(NextPosition.x, NextPosition.y - 1f, NextPosition.z);
                     IsPlayerMoving = true;
                 }
             }
-            else if (Input.GetKey(KeyCode.W))
+            else if (Input.GetKey(KeyCode.W) && !IsUpPositionObstructed)
             {
-                //If the next position does not go out of array bounds and the next position is null in the gameobject array
-                if (NextPosition.y + 1f < LevelManagerScript.ReturnLevelAreaArray().GetLength(1) && 
-                    LevelManagerScript.ReturnGameObjectFromPosition((int)(NextPosition.x), (int)(NextPosition.y + 1f)) == null)
+                //If the next position does not go out of array bounds
+                if (NextPosition.y + 1f < LevelManagerScript.ReturnLevelAreaArray().GetLength(1))
                 {
+                    SoundSource.Play();
                     NextPosition = new Vector3(NextPosition.x, NextPosition.y + 1f, NextPosition.z);
                     IsPlayerMoving = true;
-                }                
+                }
             }
         }
         else

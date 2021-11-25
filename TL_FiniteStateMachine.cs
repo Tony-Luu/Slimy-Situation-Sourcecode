@@ -42,6 +42,24 @@ public class TL_FiniteStateMachine : MonoBehaviour
         PreviousState = CurrentState;
     }
 
+    void ResetPatrolState()
+    {
+        //Reset the lists for the pathfinding
+        PathfinderScript.ResetLists();
+
+        //Create a new current node
+        Node CurrentNode = new Node();
+
+        //Store the current position for the node
+        CurrentNode.Position = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y), 0f);
+
+        //Recalculate the path to the next waypoint
+        PathfinderScript.FindPath(CurrentNode, PathfinderScript.ReturnNodeWaypoint());
+
+        //Set new state to Patrol
+        SetNewState(CharacterState.Patrol);
+    }
+
     //Updates the previous state and resets the lists for the pathfinding
     void UpdatePreviousState()
     {
@@ -101,7 +119,7 @@ public class TL_FiniteStateMachine : MonoBehaviour
                     }
 
                     //If the character is within attacking distance
-                    if (Vector3.Distance(PlayerPosition, transform.position) <= AttackingDistance)
+                    if (Vector3.Distance(Player.transform.position, transform.position) <= AttackingDistance)
                     {
                         //Round up to the nearest integer on the X and Y positions
                         transform.position = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y), 0f);

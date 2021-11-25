@@ -14,6 +14,15 @@ public class TL_AttackPlayer : MonoBehaviour
     [Tooltip("Float value for stroing the cooldown of the character's attack")]
     private float AttackCooldown;
 
+    [SerializeField]
+    [Tooltip("Sound effect for attacking the player")]
+    private AudioSource AttackSound;
+
+
+    void Start()
+    {
+        AttackSound = GetComponent<AudioSource>();
+    }
 
     //Make the character attack the player
     public void AttackPlayer()
@@ -21,17 +30,24 @@ public class TL_AttackPlayer : MonoBehaviour
         //Find the player
         GameObject Player = GameObject.FindGameObjectWithTag("Player");
 
-        //Obtain the script from the player
-        TL_PlayerHealth PlayerHealthScript = Player.GetComponent<TL_PlayerHealth>();
-
-        //If the attack cooldown is less than the real time start up
-        if (AttackCooldown < Time.realtimeSinceStartup)
+        //If the player is still alive
+        if (Player != null)
         {
-            //Subtract the player's health with the character's attack damage
-            PlayerHealthScript.SetCurrentHealth(-AttackDamage);
+            //Obtain the script from the player
+            TL_PlayerHealth PlayerHealthScript = Player.GetComponent<TL_PlayerHealth>();
 
-            //Add the cooldown
-            AttackCooldown = AttackInterval + Time.realtimeSinceStartup;
+            //If the attack cooldown is less than the real time start up
+            if (AttackCooldown < Time.realtimeSinceStartup && PlayerHealthScript.ReturnCurrentHealth() > 0f)
+            {
+                //Play the attacking sound
+                AttackSound.Play();
+
+                //Subtract the player's health with the character's attack damage
+                PlayerHealthScript.SetCurrentHealth(-AttackDamage);
+
+                //Add the cooldown
+                AttackCooldown = AttackInterval + Time.realtimeSinceStartup;
+            }
         }
     }
 

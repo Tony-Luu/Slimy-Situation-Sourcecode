@@ -64,6 +64,12 @@ public class TL_LevelManager : MonoBehaviour
         return LevelArea[x, y];
     }
 
+    //Set a gameobject in the level area
+    public void SetGameObjectInLevelArea(int x, int y, GameObject Object)
+    {
+        LevelArea[x, y] = Object;
+    }
+
     //Generate objects in the scene based on the integer in the integer 2D array
     void GenerateObjectsInScene(int[,] GridLayout)
     {
@@ -229,6 +235,5 @@ public class TL_LevelManager : MonoBehaviour
     {
         LoadLevelRespectiveOfSceneName();
     }
-
 
 }
